@@ -29,9 +29,8 @@ namespace PosixPermissions
         /// <param name="fileName">The file or directory to query.</param>
         /// <param name="loadDefaultAcl">Specifies whether to load a directory's default ACL (1) or not (0). This must be 0 for files.</param>
         /// <param name="dataContainer">Pointer to container object to store retrieved permissions and assoiated meta data.</param>
-        /// <remarks>TODO Use UnmanagedType.LPUTF8Str as soon as .NET Standard 2.1 is released</remarks>
         [DllImport(NativeLibraryPath, EntryPoint = "OpenFileAndReadPermissionData")]
-        private static extern NativeErrorCodes OpenFileAndReadPermissionData([In, MarshalAs(UnmanagedType.LPStr)] string fileName, [In] int loadDefaultAcl, [Out] out NativePermissionDataContainer dataContainer);
+        private static extern NativeErrorCodes OpenFileAndReadPermissionData([In, MarshalAs(UnmanagedType.LPUTF8Str)] string fileName, [In] int loadDefaultAcl, [Out] out NativePermissionDataContainer dataContainer);
 
         /// <summary>
         /// Retrieves the ACL entries from the previously opened file. The file is automatically closed afterwards.
@@ -47,9 +46,8 @@ namespace PosixPermissions
         /// <param name="setDefaultAcl">Specifies whether to set a directory's default ACL (1) or not (0). This must be 0 for files.</param>
         /// <param name="dataContainer">Pointer to container object with permissions and assoiated meta data.</param>
         /// <param name="entries">Array with ACL entries to be written.</param>
-        /// <remarks>TODO Use UnmanagedType.LPUTF8Str as soon as .NET Standard 2.1 is released</remarks>
         [DllImport(NativeLibraryPath, EntryPoint = "SetFilePermissionDataAndAcl")]
-        private static extern NativeErrorCodes SetFilePermissionDataAndAcl([In, MarshalAs(UnmanagedType.LPStr)] string fileName, [In] int setDefaultAcl, [In] ref NativePermissionDataContainer dataContainer, [In] AccessControlListEntry[] entries);
+        private static extern NativeErrorCodes SetFilePermissionDataAndAcl([In, MarshalAs(UnmanagedType.LPUTF8Str)] string fileName, [In] int setDefaultAcl, [In] ref NativePermissionDataContainer dataContainer, [In] AccessControlListEntry[] entries);
 
         /// <summary>
         /// <para>Returns the last value of "errno" and its string representation.</para>
@@ -57,9 +55,8 @@ namespace PosixPermissions
         /// </summary>
         /// <param name="errnoString">Pointer to <see cref="StringBuilder"/> object to return the last value of strerror().</param>
         /// <param name="errnoStringBufferLength">Length of the error string buffer passed in <paramref name="errnoString"/>.</param>
-        /// <remarks>TODO Use UnmanagedType.LPUTF8Str as soon as .NET Standard 2.1 is released</remarks>
         [DllImport(NativeLibraryPath, EntryPoint = "GetLastErrnoValue")]
-        private static extern long GetLastErrnoValue([Out, MarshalAs(UnmanagedType.LPStr)] StringBuilder errnoString, [In] int errnoStringBufferLength);
+        private static extern long GetLastErrnoValue([Out, MarshalAs(UnmanagedType.LPUTF8Str)] StringBuilder errnoString, [In] int errnoStringBufferLength);
 
         /// <summary>
         /// Retrieves the error information from the native implementation and constructs a new <see cref="NativeException"/> object, that can be thrown afterwards.

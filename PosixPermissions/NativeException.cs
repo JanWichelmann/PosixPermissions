@@ -68,49 +68,29 @@ namespace PosixPermissions
         { 
             string prefix = $"Error in {nativeMethodName}: ";
             string functionErrnoSuffix = $"() failed with errno = {errnoString} [{errno}].";
-            switch(errorCode)
+            return prefix + errorCode switch
             {
-                case NativeErrorCodes.NATIVE_ERROR_OPEN_FAILED:
-                    return prefix + "open" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_FSTAT_FAILED:
-                    return prefix + "fstat" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_FAILED:
-                    return prefix + "acl_get_fd" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_FAILED:
-                    return prefix + "acl_get_entry" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_TAG_TYPE_FAILED:
-                    return prefix + "acl_get_tag_type" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_QUALIFIER_FAILED:
-                    return prefix + "acl_get_qualifier" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_PERMSET_FAILED:
-                    return prefix + "acl_get_permset" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_PERM_FAILED:
-                    return prefix + "acl_get_perm" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_CHOWN_FAILED:
-                    return prefix + "fchown" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_CHMOD_FAILED:
-                    return prefix + "fchmod" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_INIT_ACL_FAILED:
-                    return prefix + "acl_init" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_CREATE_ACL_ENTRY_FAILED:
-                    return prefix + "acl_create_entry" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_INVALID_TAG_TYPE:
-                    return prefix + "The given entry tag type was invalid.";
-                case NativeErrorCodes.NATIVE_ERROR_SET_ACL_ENTRY_TAG_TYPE_FAILED:
-                    return prefix + "acl_set_tag_type" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_SET_ACL_ENTRY_QUALIFIER_FAILED:
-                    return prefix + "acl_set_qualifier" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_CLEAR_ACL_ENTRY_PERMS_FAILED:
-                    return prefix + "acl_clear_perms" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_ADD_ACL_ENTRY_PERM_FAILED:
-                    return prefix + "acl_add_perm" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_VALIDATE_ACL_FAILED:
-                    return prefix + "acl_valid" + functionErrnoSuffix;
-                case NativeErrorCodes.NATIVE_ERROR_SET_ACL_FAILED:
-                    return prefix + "acl_set_fd" + functionErrnoSuffix;
-                default:
-                    return "Unknown native error.";
-            }
+                NativeErrorCodes.NATIVE_ERROR_OPEN_FAILED => prefix + "open" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_FSTAT_FAILED => prefix + "fstat" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_FAILED => prefix + "acl_get_fd" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_FAILED => prefix + "acl_get_entry" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_TAG_TYPE_FAILED => prefix + "acl_get_tag_type" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_QUALIFIER_FAILED => prefix + "acl_get_qualifier" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_PERMSET_FAILED => prefix + "acl_get_permset" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_GET_ACL_ENTRY_PERM_FAILED => prefix + "acl_get_perm" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_CHOWN_FAILED => prefix + "fchown" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_CHMOD_FAILED => prefix + "fchmod" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_INIT_ACL_FAILED => prefix + "acl_init" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_CREATE_ACL_ENTRY_FAILED => prefix + "acl_create_entry" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_INVALID_TAG_TYPE => prefix + "The given entry tag type was invalid.",
+                NativeErrorCodes.NATIVE_ERROR_SET_ACL_ENTRY_TAG_TYPE_FAILED => prefix + "acl_set_tag_type" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_SET_ACL_ENTRY_QUALIFIER_FAILED => prefix + "acl_set_qualifier" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_CLEAR_ACL_ENTRY_PERMS_FAILED => prefix + "acl_clear_perms" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_ADD_ACL_ENTRY_PERM_FAILED => prefix + "acl_add_perm" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_VALIDATE_ACL_FAILED => prefix + "acl_valid" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_SET_ACL_FAILED => prefix + "acl_set_fd" + functionErrnoSuffix,
+                _ => "Unknown native error.",
+            };
         }
     }
 }
