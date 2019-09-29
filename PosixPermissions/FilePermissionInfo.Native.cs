@@ -81,6 +81,77 @@ namespace PosixPermissions
         /// <param name="file">The file to apply the permissions to.</param>
         public void ApplyPermissions(FileInfo file)
         {
+            // Calculate ACL size first
+            int aclSize = 3 + _aclUserPermissions.Count + _aclGroupPermissions.Count + 1;
+
+            // Collect base permissions
+            NativePermissionDataContainer dataContainer = new NativePermissionDataContainer()
+            {
+                OwnerId = OwnerId,
+                OwnerPermissions = OwnerPermissions,
+                GroupId = GroupId,
+                GroupPermissions = GroupPermissions,
+                OtherPermissions = OtherPermissions,
+                AclSize = aclSize
+            };
+
+            // Allocate ACL
+            AccessControlListEntry[] aclEntries = new AccessControlListEntry[aclSize];
+            int pos = 0;
+
+            // Add UNIX permissions
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.UserObj,
+                TagQualifier = OwnerId,
+                Permissions = OwnerPermissions
+            };
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.GroupObj,
+                TagQualifier = GroupId,
+                Permissions = GroupPermissions
+            };
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.Other,
+                TagQualifier = -1,
+                Permissions = OtherPermissions
+            };
+
+            // Add user and group entries
+            FilePermissions aclMask = GroupPermissions | OtherPermissions;
+            foreach(var perm in _aclUserPermissions)
+            {
+                aclMask |= perm.Value;
+                aclEntries[pos++] = new AccessControlListEntry
+                {
+                    TagType = AccessControlListEntryTagTypes.User,
+                    TagQualifier = perm.Key,
+                    Permissions = perm.Value
+                };
+            }
+            foreach(var perm in _aclGroupPermissions)
+            {
+                aclMask |= perm.Value;
+                aclEntries[pos++] = new AccessControlListEntry
+                {
+                    TagType = AccessControlListEntryTagTypes.Group,
+                    TagQualifier = perm.Key,
+                    Permissions = perm.Value
+                };
+            }
+
+            // Add mask
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.Mask,
+                TagQualifier = -1,
+                Permissions = aclMask
+            };
+
+            // Apply permissions
+            NativeInterface.SetPermissionData(file.FullName, 0, ref dataContainer, aclEntries);
 
             // TODO handle/document exceptions
         }
@@ -89,9 +160,82 @@ namespace PosixPermissions
         /// Applies the contained permissions to the given directory.
         /// </summary>
         /// <param name="directory">The directory to apply the permissions to.</param>
-        /// <param name="asDefault">Specifies whether the permissions shall be stored as the directory's default ACL.</param>
-        public void ApplyPermissions(DirectoryInfo directory, bool asDefault)
+        /// <param name="asDefault">Optional. Specifies whether to update the directory's default ACL. When using this option, the contained UNIX permissions are not applied to the file (chown/chmod), but are still assumed as consistent!</param>
+        public void ApplyPermissions(DirectoryInfo directory, bool asDefault = false)
         {
+            // Calculate ACL size first
+            int aclSize = 3 + _aclUserPermissions.Count + _aclGroupPermissions.Count + 1;
+
+            // Collect base permissions
+            NativePermissionDataContainer dataContainer = new NativePermissionDataContainer()
+            {
+                AclSize = aclSize,
+
+                // These are ignored when the directory's default ACL is set
+                OwnerId = OwnerId,
+                OwnerPermissions = OwnerPermissions,
+                GroupId = GroupId,
+                GroupPermissions = GroupPermissions,
+                OtherPermissions = OtherPermissions
+            };
+
+            // Allocate ACL
+            AccessControlListEntry[] aclEntries = new AccessControlListEntry[aclSize];
+            int pos = 0;
+
+            // Add UNIX permissions
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.UserObj,
+                TagQualifier = OwnerId,
+                Permissions = OwnerPermissions
+            };
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.GroupObj,
+                TagQualifier = GroupId,
+                Permissions = GroupPermissions
+            };
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.Other,
+                TagQualifier = -1,
+                Permissions = OtherPermissions
+            };
+
+            // Add user and group entries
+            FilePermissions aclMask = GroupPermissions | OtherPermissions;
+            foreach(var perm in _aclUserPermissions)
+            {
+                aclMask |= perm.Value;
+                aclEntries[pos++] = new AccessControlListEntry
+                {
+                    TagType = AccessControlListEntryTagTypes.User,
+                    TagQualifier = perm.Key,
+                    Permissions = perm.Value
+                };
+            }
+            foreach(var perm in _aclGroupPermissions)
+            {
+                aclMask |= perm.Value;
+                aclEntries[pos++] = new AccessControlListEntry
+                {
+                    TagType = AccessControlListEntryTagTypes.Group,
+                    TagQualifier = perm.Key,
+                    Permissions = perm.Value
+                };
+            }
+
+            // Add mask
+            aclEntries[pos++] = new AccessControlListEntry
+            {
+                TagType = AccessControlListEntryTagTypes.Mask,
+                TagQualifier = -1,
+                Permissions = aclMask
+            };
+
+            // Apply permissions
+            NativeInterface.SetPermissionData(directory.FullName, asDefault ? 1 : 0, ref dataContainer, aclEntries);
 
             // TODO handle/document exceptions
         }

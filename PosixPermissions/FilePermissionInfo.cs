@@ -118,6 +118,11 @@ namespace PosixPermissions
         public bool TryGetUserPermissions(int uid, out FilePermissions filePermissions)
         {
             // Try to retrieve permissions
+            if(OwnerId == uid)
+            {
+                filePermissions = OwnerPermissions;
+                return true;
+            }
             return _aclUserPermissions.TryGetValue(uid, out filePermissions);
         }
 
@@ -183,6 +188,11 @@ namespace PosixPermissions
         public bool TryGetGroupPermissions(int gid, out FilePermissions filePermissions)
         {
             // Try to retrieve permissions
+            if(GroupId == gid)
+            {
+                filePermissions = GroupPermissions;
+                return true;
+            }
             return _aclGroupPermissions.TryGetValue(gid, out filePermissions);
         }
 

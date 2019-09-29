@@ -5,14 +5,16 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/acl.h>
+#include <acl/libacl.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h>
 
 
 /* GLOBAL VARIABLES */
 
 // The file descriptor returned by open().
-static int _fd = NULL;
+static int _fd = 0;
 
 // The current ACL handle.
 static acl_t _acl = NULL;
@@ -44,7 +46,7 @@ static native_error_code_t cleanup_with_error_code(native_error_code_t errorCode
 	if(_fd)
 	{
 		close(_fd);
-		_fd = NULL;
+		_fd = 0;
 	}
 	return errorCode;
 }
@@ -52,7 +54,7 @@ static native_error_code_t cleanup_with_error_code(native_error_code_t errorCode
 
 /* EXPOSED API FUNCTIONS */
 
-extern native_error_code_t OpenFileAndReadPermissionData(const char *fileName, int32_t loadDefaultAcl, native_permission_data_container_t *dataContainer);
+extern native_error_code_t OpenFileAndReadPermissionData(const char *fileName, int32_t loadDefaultAcl, native_permission_data_container_t *dataContainer)
 {
 	// Reset errno
 	_lastErrnoValue = 0;
@@ -75,7 +77,7 @@ extern native_error_code_t OpenFileAndReadPermissionData(const char *fileName, i
 	
 	// Fill basic permission fields
 	dataContainer->ownerId = fileStat.st_uid;
-	dataContainer->groupId = fileStat.st_git;
+	dataContainer->groupId = fileStat.st_gid;
 	dataContainer->ownerPermissions = ((fileStat.st_mode & S_IRUSR) ? FILE_PERMISSION_READ : FILE_PERMISSION_NONE)
 	                                | ((fileStat.st_mode & S_IWUSR) ? FILE_PERMISSION_WRITE : FILE_PERMISSION_NONE)
 	                                | ((fileStat.st_mode & S_IXUSR) ? FILE_PERMISSION_EXECUTE : FILE_PERMISSION_NONE)
@@ -90,7 +92,7 @@ extern native_error_code_t OpenFileAndReadPermissionData(const char *fileName, i
 	                                | ((fileStat.st_mode & S_IXOTH) ? FILE_PERMISSION_EXECUTE : FILE_PERMISSION_NONE);
 	
 	// Try to load ACL
-	_acl = acl_get_fd(_fd, loadDefaultAcl > 0 ? ACL_TYPE_DEFAULT : ACL_TYPE_ACCESS);
+	_acl = acl_get_file(fileName, loadDefaultAcl > 0 ? ACL_TYPE_DEFAULT : ACL_TYPE_ACCESS);
 	if(!_acl)
 	{
 		store_errno();
@@ -237,36 +239,40 @@ extern native_error_code_t SetFilePermissionDataAndAcl(const char *fileName, int
 		return cleanup_with_error_code(NATIVE_ERROR_FSTAT_FAILED);
 	}
 	
-	// Change owner and group
-	uid_t newOwner = -1;
-	gid_t newGroup = -1;
-	if(dataContainer->ownerId != fileStat.st_uid)
-		newOwner = dataContainer->ownerId;
-	if(dataContainer->groupId != fileStat.st_gid)
-		newGroup = dataContainer->groupId;
-	if((newOwner != -1 || newGroup != -1) && fchown(_fd, newOwner, newGroup) < 0)
+	// Update owner and UNIX permissions
+	if(!setDefaultAcl)
 	{
-		store_errno();
-		return cleanup_with_error_code(NATIVE_ERROR_CHOWN_FAILED);
-	}
-	
-	// Build standard permission bitfield
-	mode_t chmodBits = ((dataContainer->ownerPermissions & FILE_PERMISSION_READ) ? S_IRUSR : 0)
-	                 | ((dataContainer->ownerPermissions & FILE_PERMISSION_WRITE) ? S_IWUSR : 0)
-	                 | ((dataContainer->ownerPermissions & FILE_PERMISSION_EXECUTE) ? S_IXUSR : 0)
-	                 | ((dataContainer->ownerPermissions & FILE_PERMISSION_SETID) ? S_ISUID : 0)
-	                 | ((dataContainer->ownerPermissions & FILE_PERMISSION_STICKY) ? S_ISVTX : 0)
-					 | ((dataContainer->groupPermissions & FILE_PERMISSION_READ) ? S_IRGRP : 0)
-	                 | ((dataContainer->groupPermissions & FILE_PERMISSION_WRITE) ? S_IWGRP : 0)
-	                 | ((dataContainer->groupPermissions & FILE_PERMISSION_EXECUTE) ? S_IXGRP : 0)
-	                 | ((dataContainer->groupPermissions & FILE_PERMISSION_SETID) ? S_ISGID : 0)
-					 | ((dataContainer->otherPermissions & FILE_PERMISSION_READ) ? S_IROTH : 0)
-	                 | ((dataContainer->otherPermissions & FILE_PERMISSION_WRITE) ? S_IWOTH : 0)
-	                 | ((dataContainer->otherPermissions & FILE_PERMISSION_EXECUTE) ? S_IXOTH : 0);
-	if(fchmod(_fd, chmodBits) < 0)
-	{
-		store_errno();
-		return cleanup_with_error_code(NATIVE_ERROR_CHMOD_FAILED);
+		// Change owner and group
+		uid_t newOwner = -1;
+		gid_t newGroup = -1;
+		if(dataContainer->ownerId != fileStat.st_uid)
+			newOwner = dataContainer->ownerId;
+		if(dataContainer->groupId != fileStat.st_gid)
+			newGroup = dataContainer->groupId;
+		if((newOwner != -1 || newGroup != -1) && fchown(_fd, newOwner, newGroup) < 0)
+		{
+			store_errno();
+			return cleanup_with_error_code(NATIVE_ERROR_CHOWN_FAILED);
+		}
+		
+		// Build standard permission bitfield
+		mode_t chmodBits = ((dataContainer->ownerPermissions & FILE_PERMISSION_READ) ? S_IRUSR : 0)
+						 | ((dataContainer->ownerPermissions & FILE_PERMISSION_WRITE) ? S_IWUSR : 0)
+						 | ((dataContainer->ownerPermissions & FILE_PERMISSION_EXECUTE) ? S_IXUSR : 0)
+						 | ((dataContainer->ownerPermissions & FILE_PERMISSION_SETID) ? S_ISUID : 0)
+						 | ((dataContainer->ownerPermissions & FILE_PERMISSION_STICKY) ? S_ISVTX : 0)
+						 | ((dataContainer->groupPermissions & FILE_PERMISSION_READ) ? S_IRGRP : 0)
+						 | ((dataContainer->groupPermissions & FILE_PERMISSION_WRITE) ? S_IWGRP : 0)
+						 | ((dataContainer->groupPermissions & FILE_PERMISSION_EXECUTE) ? S_IXGRP : 0)
+						 | ((dataContainer->groupPermissions & FILE_PERMISSION_SETID) ? S_ISGID : 0)
+						 | ((dataContainer->otherPermissions & FILE_PERMISSION_READ) ? S_IROTH : 0)
+						 | ((dataContainer->otherPermissions & FILE_PERMISSION_WRITE) ? S_IWOTH : 0)
+						 | ((dataContainer->otherPermissions & FILE_PERMISSION_EXECUTE) ? S_IXOTH : 0);
+		if(fchmod(_fd, chmodBits) < 0)
+		{
+			store_errno();
+			return cleanup_with_error_code(NATIVE_ERROR_CHMOD_FAILED);
+		}
 	}
 	
 	// Create new ACL
@@ -363,8 +369,8 @@ extern native_error_code_t SetFilePermissionDataAndAcl(const char *fileName, int
 		return cleanup_with_error_code(NATIVE_ERROR_VALIDATE_ACL_FAILED);
 	}
 	
-	// Assign ACL to file
-	if(acl_set_fd(_fd, _acl) < 0)
+	// Assign ACL to file or directory
+	if(acl_set_file(fileName, setDefaultAcl > 0 ? ACL_TYPE_DEFAULT : ACL_TYPE_ACCESS, _acl) < 0)
 	{
 		store_errno();
 		return cleanup_with_error_code(NATIVE_ERROR_SET_ACL_FAILED);
@@ -380,6 +386,11 @@ int64_t GetLastErrnoValue(char *errnoStringBuffer, int errnoStringBufferLength)
 	if(_lastErrnoValue == 0)
 		errnoStringBuffer[0] = '\0';
 	else
-		strcpy_s(errnoStringBuffer, errnoStringBufferLength, _lastErrnoString);
+	{
+		// Make sure that the output buffer does not overflow
+		// strncpy will fill the remainder of the output buffer with null bytes
+		strncpy(errnoStringBuffer, _lastErrnoString, errnoStringBufferLength);
+		errnoStringBuffer[errnoStringBufferLength - 1] = '\0';
+	}
 	return _lastErrnoValue;
 }

@@ -73,7 +73,7 @@ typedef struct
 		
 } native_acl_entry_t;
 static_assert(sizeof(native_acl_entry_t) == 3 * 4, "Native struct size does not match the one in C#. This will cause problems during P/Invoke. Fix this!");
-́
+
 // Container object to pass permission data between C# and native code, to avoid a large amount function parameters.
 typedef struct
 {
@@ -158,7 +158,7 @@ typedef enum
 	// Indicates that the acl_valid() call failed. The corresponding errno value was stored.
 	NATIVE_ERROR_VALIDATE_ACL_FAILED = 18,
 	
-	// Indicates that the acl_set_fd() call failed. The corresponding errno value was stored.
+	// Indicates that the acl_set_file() call failed. The corresponding errno value was stored.
 	NATIVE_ERROR_SET_ACL_FAILED = 19,
 
 } native_error_code_t;

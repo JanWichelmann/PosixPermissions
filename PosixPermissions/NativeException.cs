@@ -88,7 +88,7 @@ namespace PosixPermissions
                 NativeErrorCodes.NATIVE_ERROR_CLEAR_ACL_ENTRY_PERMS_FAILED => prefix + "acl_clear_perms" + functionErrnoSuffix,
                 NativeErrorCodes.NATIVE_ERROR_ADD_ACL_ENTRY_PERM_FAILED => prefix + "acl_add_perm" + functionErrnoSuffix,
                 NativeErrorCodes.NATIVE_ERROR_VALIDATE_ACL_FAILED => prefix + "acl_valid" + functionErrnoSuffix,
-                NativeErrorCodes.NATIVE_ERROR_SET_ACL_FAILED => prefix + "acl_set_fd" + functionErrnoSuffix,
+                NativeErrorCodes.NATIVE_ERROR_SET_ACL_FAILED => prefix + "acl_set_file" + functionErrnoSuffix,
                 _ => "Unknown native error.",
             };
         }
