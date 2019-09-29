@@ -1,6 +1,7 @@
 ﻿using Mono.Unix.Native;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -10,7 +11,7 @@ namespace PosixPermissions
     /// <summary>
     /// Exposes a direct interface to the underlying native library.
     /// </summary>
-    public class NativeInterface
+    public class NativeLibraryInterface : INativeLibraryInterface
     {
         /// <summary>
         /// Path to the underlying native library, which is invoked from here.
@@ -20,7 +21,7 @@ namespace PosixPermissions
         /// <summary>
         /// Used for locking access to native functions (native library isn't thread safe).
         /// </summary>
-        private static readonly object _nativeFunctionsLock = new object();
+        private readonly object _nativeFunctionsLock = new object();
 
         /// <summary>
         /// <para>Opens the ACL of the given file or directory, and reads its permission data.</para>
@@ -65,7 +66,7 @@ namespace PosixPermissions
         /// <param name="errorCode">The error code returned by the native API method.</param>
         /// <param name="errnoResolvable">This will tell whether the retrieved errno could be resolved into a symbolic representation.</param>
         /// <param name="errnoSymbolic">This will hold the symbolic value of the retrieved errno; check the <paramref name="errnoResolvable"/> parameter beforehand!</param>
-        private static NativeException RetrieveErrnoAndBuildException(string nativeMethodName, NativeErrorCodes errorCode, out bool errnoResolvable, out Errno errnoSymbolic)
+        private NativeException RetrieveErrnoAndBuildException(string nativeMethodName, NativeErrorCodes errorCode, out bool errnoResolvable, out Errno errnoSymbolic)
         {
             // Retrieve errno
             var errnoStringBuffer = new StringBuilder(256);
@@ -78,16 +79,11 @@ namespace PosixPermissions
             return new NativeException(nativeMethodName, errorCode, errno, (errnoResolvable ? errnoSymbolic.ToString() + ", " : "") + errnoStringBuffer.ToString());
         }
 
-        /// <summary>
-        /// Queries the permission data and ACL of the given file or directory.
-        /// </summary>
-        /// <param name="fileName">The file or directory to query.</param>
-        /// <param name="loadDefaultAcl">Specifies whether to load a directory's default ACL (1) or not (0). This must be 0 for files.</param>
-        /// <param name="dataContainer">Pointer to container object to store retrieved permissions and assoiated meta data.</param>
+        /// <inheritdoc />
         /// <exception cref="UnauthorizedAccessException">Thrown when trying to open a file/directory without having sufficient access permissions.</exception>
         /// <exception cref="FileNotFoundException">Thrown when a file/directory or parts of its path cannot be found.</exception>
         /// <exception cref="NativeException">Generic exception thrown when a native method fails, and the error was not covered by one of the other possible exceptions. This exception is also always included as the <see cref="Exception.InnerException"/>.</exception>
-        public static AccessControlListEntry[] GetPermissionData(string fileName, int loadDefaultAcl, out NativePermissionDataContainer dataContainer)
+        public AccessControlListEntry[] GetPermissionData(string fileName, int loadDefaultAcl, out NativePermissionDataContainer dataContainer)
         {
             // Ensure exclusive access to native functions
             lock(_nativeFunctionsLock)
@@ -121,18 +117,12 @@ namespace PosixPermissions
             }
         }
 
-        /// <summary>
-        /// Sets the permission data and ACL of the given file or directory.
-        /// </summary>
-        /// <param name="fileName">The file or directory to set permissions for.</param>
-        /// <param name="setDefaultAcl">Specifies whether to load a directory's default ACL (1) or not (0). This must be 0 for files.</param>
-        /// <param name="dataContainer">Pointer to container object with permissions and meta data.</param>
-        /// <param name="entries">Entries of the object' new access control list.</param>
+        /// <inheritdoc />
         /// <exception cref="UnauthorizedAccessException">Thrown when trying to open or modify a file/directory without having sufficient access permissions.</exception>
         /// <exception cref="FileNotFoundException">Thrown when a file/directory or parts of its path cannot be found.</exception>
         /// <exception cref="ArgumentException">Thrown when the provided ACL is invalid.</exception>
         /// <exception cref="NativeException">Generic exception thrown when a native method fails, and the error was not covered by one of the other possible exceptions. This exception is also always included as the <see cref="Exception.InnerException"/>.</exception>
-        public static void SetPermissionData(string fileName, int setDefaultAcl, ref NativePermissionDataContainer dataContainer, AccessControlListEntry[] entries)
+        public void SetPermissionData(string fileName, int setDefaultAcl, ref NativePermissionDataContainer dataContainer, AccessControlListEntry[] entries)
         {
             // Ensure exclusive access to native functions
             lock(_nativeFunctionsLock)
@@ -217,6 +207,7 @@ namespace PosixPermissions
     /// <summary>
     /// Defines the error codes that might be returned by the native implementation. Documentation can be found in the respective header file.
     /// </summary>
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public enum NativeErrorCodes : int
     {
         NATIVE_ERROR_SUCCESS = 0,

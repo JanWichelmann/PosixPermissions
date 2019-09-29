@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("PosixPermissions.Tests")]
 namespace PosixPermissions
 {
     /// <summary>
     /// Contains a combination of file permissions and a POSIX access control list, which can be applied to any file.
     /// </summary>
-    public partial class FilePermissionInfo
+    public partial class PosixPermissionInfo
     {
         /// <summary>
         /// The UID of the file owner.
@@ -85,28 +86,28 @@ namespace PosixPermissions
         /// <summary>
         /// The ACL user entries.
         /// </summary>
-        private Dictionary<int, FilePermissions> _aclUserPermissions;
+        private readonly Dictionary<int, FilePermissions> _aclUserPermissions = new Dictionary<int, FilePermissions>();
 
         /// <summary>
         /// The ACL group entries.
         /// </summary>
-        private Dictionary<int, FilePermissions> _aclGroupPermissions;
+        private readonly Dictionary<int, FilePermissions> _aclGroupPermissions = new Dictionary<int, FilePermissions>();
 
         /// <summary>
-        /// Creates a new <see cref="FilePermissionInfo"/> object with an empty access control list for the given owner and group.
+        /// Creates a new <see cref="PosixPermissionInfo"/> object with an empty access control list for the given owner and group.
         /// </summary>
+        /// <param name="nativeLibraryInterface">Object for native operations.</param>
         /// <param name="ownerId">The UID of the file's owner.</param>
         /// <param name="groupId">The GID of the file's group.</param>
-        public FilePermissionInfo(int ownerId, int groupId)
+        public PosixPermissionInfo(INativeLibraryInterface nativeLibraryInterface, int ownerId, int groupId)
         {
             // Initialize fields
+            _nativeLibraryInterface = nativeLibraryInterface ?? throw new ArgumentNullException(nameof(nativeLibraryInterface));
             OwnerId = ownerId;
             OwnerPermissions = FilePermissions.None;
             GroupId = groupId;
             GroupPermissions = FilePermissions.None;
             OtherPermissions = FilePermissions.None;
-            _aclUserPermissions = new Dictionary<int, FilePermissions>();
-            _aclGroupPermissions = new Dictionary<int, FilePermissions>();
         }
 
         /// <summary>
@@ -132,7 +133,7 @@ namespace PosixPermissions
         /// <para>If the user ID matches the <see cref="OwnerId"/> property, the <see cref="OwnerPermissions"/> property is updated instead.</para>
         /// </summary>
         /// <param name="uid">The ID of the user to set the permissions for.</param>
-        /// <param name="filePermissions">The permissions to set.</param>
+        /// <param name="permissions">The permissions to set.</param>
         public void SetUserPermissions(int uid, FilePermissions permissions)
         {
             // Owner or ACL entry?
@@ -154,7 +155,7 @@ namespace PosixPermissions
         {
             // Parameter checks
             if(permissions == null)
-                throw new ArgumentNullException($"\"{nameof(permissions)}\" is null.");
+                throw new ArgumentNullException(nameof(permissions));
 
             // Apply permissions
             foreach(var p in permissions)
@@ -202,7 +203,7 @@ namespace PosixPermissions
         /// <para>If the group ID matches the <see cref="GroupId"/> property, the <see cref="GroupPermissions"/> property is updated instead.</para>
         /// </summary>
         /// <param name="gid">The ID of the group to set the permissions for.</param>
-        /// <param name="filePermissions">The permissions to set.</param>
+        /// <param name="permissions">The permissions to set.</param>
         public void SetGroupPermissions(int gid, FilePermissions permissions)
         {
             // File group or ACL entry?
@@ -224,7 +225,7 @@ namespace PosixPermissions
         {
             // Parameter checks
             if(permissions == null)
-                throw new ArgumentNullException($"\"{nameof(permissions)}\" is null.");
+                throw new ArgumentNullException(nameof(permissions));
 
             // Apply permissions
             foreach(var p in permissions)
